@@ -1,0 +1,274 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ index $.Values "cluster-configs" "configmaps" "scheduler-deployment-name" }} 
+  name: {{ index $.Values "cluster-configs" "configmaps" "scheduler-deployment-name" }} 
+  namespace: {{ index $.Values "cluster-configs" "configmaps" "namespace" }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ index $.Values "cluster-configs" "configmaps" "scheduler-deployment-name" }} 
+  template:
+    metadata:
+      labels:
+        app: {{ index $.Values "cluster-configs" "configmaps" "scheduler-deployment-name" }} 
+    spec:
+      containers:
+      - env:
+        - name: spring.datasource.url
+          valueFrom:
+            configMapKeyRef:
+              key: db-url
+              name: orbit-config
+        - name: spring.datasource.username
+          valueFrom:
+            configMapKeyRef:
+              key: db-user
+              name: orbit-config
+        - name: spring.datasource.password
+          valueFrom:
+            configMapKeyRef:
+              key: db-password
+              name: orbit-config
+        - name: spring.jpa.database-platform
+          valueFrom:
+            configMapKeyRef:
+              key: database-platform 
+              name: orbit-config
+        - name: spring.datasource.driver-class-name
+          valueFrom:
+            configMapKeyRef:
+              key: driver-class-name
+              name: orbit-config
+        - name: spring.datasource.hikari.connection-test-query
+          valueFrom:
+            configMapKeyRef:
+              key: connection-test-query 
+              name: orbit-config
+        - name: spring.datasource.hikari.maximum-pool-size
+          valueFrom:
+            configMapKeyRef:
+              key: maximum-pool-size
+              name: orbit-config
+        - name: spring.datasource.hikari.pool-name
+          valueFrom:
+            configMapKeyRef:
+              key: pool-name
+              name: orbit-config
+        - name: spring.jpa.show-sql
+          valueFrom:
+            configMapKeyRef:
+              key: show-sql
+              name: orbit-config
+        - name: spring.quartz.auto-startup
+          valueFrom:
+            configMapKeyRef:
+              key: sch-quartz-auto-startup
+              name: orbit-config
+        - name: spring.quartz.wait-for-jobs-to-complete-on-shutdown
+          valueFrom:
+            configMapKeyRef:
+              key: wait-for-jobs-to-complete-on-shutdown
+              name: orbit-config 
+        - name: spring.quartz.properties.org.quartz.jobStore.isClustered
+          valueFrom:
+            configMapKeyRef:
+              key: quartz-jobStore-isClustered
+              name: orbit-config
+        - name: spring.quartz.properties.org.quartz.scheduler.instanceName
+          valueFrom:
+            configMapKeyRef:
+              key: quartz-scheduler-instanceName
+              name: orbit-config
+        - name: server.servlet.context-path
+          valueFrom:
+            configMapKeyRef:
+              key: servlet-context-path
+              name: orbit-config 
+        - name: server.servlet.session.timeout
+          valueFrom:
+            configMapKeyRef:
+              key: servlet-session-timeout
+              name: orbit-config              
+        - name: orbit.token.auth.jot.expire.time
+          valueFrom:
+            configMapKeyRef:
+              key: jot-expire-time
+              name: orbit-config              
+        - name: spring.mail.host
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-host
+              name: orbit-config 
+        - name: spring.mail.port
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-port
+              name: orbit-config
+        - name: spring.mail.username
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-username
+              name: orbit-config
+        - name: spring.mail.password
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-password
+              name: orbit-config
+        - name: spring.mail.properties.mail.smtp.ssl.trust
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-properties-mail-smtp-ssl-trust
+              name: orbit-config              
+        - name: spring.mail.protocol
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-protocol
+              name: orbit-config              
+        - name: spring.mail.test-connection
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-test-connection
+              name: orbit-config
+        - name: spring.mail.properties.mail.smtp.auth
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-properties-mail-smtp-auth
+              name: orbit-config    
+        - name: spring.mail.properties.mail.smtp.connectiontimeout
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-properties-mail-smtp.connectiontimeout
+              name: orbit-config
+        - name: spring.mail.properties.mail.smtp.timeout
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-properties-mail-smtp-timeout
+              name: orbit-config
+        - name: spring.mail.properties.mail.smtp.writetimeout
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-properties-mail-smtp-writetimeout
+              name: orbit-config
+        - name: spring.mail.properties.mail.smtp.starttls.enable
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-properties-mail-smtp-starttls-enable
+              name: orbit-config      
+        - name: spring.mail.properties.mail.smtp.starttls.required
+          valueFrom:
+            configMapKeyRef:
+              key: spring-mail-properties-mail-smtp-starttls-required
+              name: orbit-config              
+        - name: orbit.support.email
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-support-email
+              name: orbit-config              
+        - name: orbit.userlocales
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-userlocales
+              name: orbit-config 
+        - name: orbit.cuba.reporting.office.path
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-cuba-reporting-office-path
+              name: orbit-config  
+        - name: orbit.cuba.reporting.office.ports
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-cuba-reporting-office-ports
+              name: orbit-config  
+        - name: orbit.python.binary.path
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-python-binary-path
+              name: orbit-config  
+        - name: orbit.r.binary.path
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-r-binary-path
+              name: orbit-config  
+        - name: orbit.cuba.reporting.office.doc-formatter-timeout
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-cuba-reporting-office-doc-formatter-timeout
+              name: orbit-config 
+        - name: orbit.license.domain.name
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-license-domain-name
+              name: orbit-config                
+        - name: orbit.reporting.base.url
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-int-reporting-base-url
+              name: orbit-config                
+        - name: orbit.web-node.url
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-web-node-url
+              name: orbit-config
+        - name: orbit.scheduler-node.url
+          valueFrom:
+            configMapKeyRef:
+              key: sch-orbit-scheduler-node-url
+              name: orbit-config
+        - name: orbit.publisher-node.url
+          valueFrom:
+            configMapKeyRef:
+              key: sch-orbit-publisher-node-url
+              name: orbit-config
+        - name: orbit.cors.allowed.origins
+          valueFrom:
+            configMapKeyRef:
+              key: orbit-cors-allowed-origins
+              name: orbit-config
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: logging.console.enabled
+          valueFrom:
+            configMapKeyRef:
+              key: logging.console.enabled
+              name: orbit-config
+        name: {{ index $.Values "cluster-configs" "configmaps" "scheduler-deployment-name" }} 
+        resources:
+          limits:
+            memory: 2Gi
+          requests:
+            memory: 1Gi
+        image: {{ .Values.image }}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /ORBIT_HOME
+          name: orbit-data                 
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sh
+              - -c
+              - sleep 10
+      dnsPolicy: ClusterFirst
+      initContainers:     
+       - name: install-orbit
+         image: {{ index $.Values "cluster-configs" "configmaps" "orbit_home_sync_image" }}
+         imagePullPolicy: Always
+         command: ["/bin/sh", "-c", "cp -R /usr/local/ORBIT_HOME /"]
+         volumeMounts:
+         - mountPath: /ORBIT_HOME
+           name: orbit-data                 
+      imagePullSecrets:
+      - name: ocirsecret
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: orbit-data
+        persistentVolumeClaim:
+          claimName: {{ index $.Values "cluster-configs" "configmaps" "pvc-name" }}

@@ -1,0 +1,76 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent any
+  stages{
+      stage('Clone Repository'){
+          steps{
+              script{
+                  deleteDir()
+                  checkout scm
+                }
+          }
+      }
+        stage('Download Artifacts') {  
+                steps {
+                   script {
+                       def server = Artifactory.server 'Art1'
+                       def buildInfo = Artifactory.newBuildInfo()
+                       buildInfo.env.capture = true
+                       def downloadSpec = """{
+                         "files": [{
+                             "pattern": "orbit-releases/${VERSION}/reporting.war"
+                         },
+                         {
+                             "pattern": "orbit-releases/${VERSION}/ORBIT_HOME.zip"
+                         },
+                         {
+                             "pattern": "orbit-releases/orbit.properties"
+                         },
+                         {
+                             "pattern": "orbit-releases/server.xml"
+                         },
+                         {
+                             "pattern": "orbit-releases/setenv.sh"
+                         },
+                         {
+                            "pattern": "orbit-releases/logging.properties"
+                         },
+                         {
+                             "pattern": "orbit-releases/tomcat-users.xml"
+                         },
+                         {
+                             "pattern": "orbit-releases/licenses/publisher/PUBSVC_BI_5D_5S_10E_87DAYS.orbitlic"
+                         }]
+                       }"""
+                      server.download(downloadSpec)
+                       rtBuildInfo (maxBuilds: 1, maxDays: 2, doNotDiscardBuilds: ["3"], deleteBuildArtifacts: true)
+                      server.publishBuildInfo buildInfo
+                      }
+            }
+        }
+        stage('Building image') {
+           steps{
+              script {
+                 sh 'mv server.xml logging.properties tomcat-users.xml setenv.sh ${WORKSPACE}/dockerfiles/publisher'
+                 sh 'mv ${VERSION}/reporting.war  ${WORKSPACE}/dockerfiles/publisher'
+                 sh 'mv ${VERSION}/ORBIT_HOME.zip ${WORKSPACE}/dockerfiles/publisher'
+                 sh 'unzip -q  ${WORKSPACE}/dockerfiles/publisher/ORBIT_HOME.zip -d ${WORKSPACE}/dockerfiles/publisher'
+                 sh 'mv orbit.properties ${WORKSPACE}/dockerfiles/publisher/ORBIT_HOME/conf'
+                 sh 'mv ${WORKSPACE}/licenses/publisher/*.orbitlic dockerfiles/publisher/ORBIT_HOME/licenses'
+                 sh 'docker build --network=host -t orbitpublisher:${VERSION} ${WORKSPACE}/dockerfiles/publisher'
+        }
+      }
+    }
+      stage('Puch Image to OCR') {
+        steps{
+           script{
+               docker.withRegistry('https://bom.ocir.io','OCRlogin'){
+               sh 'docker tag orbitpublisher:${VERSION} bom.ocir.io/idgrosnf0lwv/orbit-int-repo/publisher:${VERSION}'
+               sh 'docker push bom.ocir.io/idgrosnf0lwv/orbit-int-repo/publisher:${VERSION}'
+               }
+           }
+        } 
+     }
+  }
+}

@@ -1,0 +1,15 @@
+sencha.executabledir=C:/Users/PolaxianRnD/bin/Sencha/Cmd/6.7.0.63/sencha
+
+deploy.dir=$buildName
+warname=reporting
+product.version=$buildName
+
+###production properties
+#warexclusions = **/orbitui/**
+#sencha.env=production
+#sencha.build.output.exclusion=
+
+### development build properties
+warexclusions = 
+sencha.env=development
+sencha.build.output.exclusion=**/**

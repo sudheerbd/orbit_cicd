@@ -1,0 +1,23 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-godaddy-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory 
+    email: shubham.bhardwaj@walkingtree.tech
+    privateKeySecretRef:
+      name: letsencrypt-godaddy-staging
+    solvers:
+    - selector:
+        dnsNames:
+        - '*.orbitbi.com'
+      dns01:
+        webhook:
+          groupName: acme.mycompany.com
+          solverName: godaddy	
+          config:
+            authApiKey: 2uMWigGbbH_68nFij15qAn1YSRC4fFQUN
+            authApiSecret: W7UZFnwY8e9b4WB1hmdKWz
+            production: true
+            ttl: 600	

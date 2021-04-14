@@ -1,0 +1,21 @@
+##Nginx Ingress
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: prometheus.orbitbi.com
+    http:
+      paths:
+      - backend:
+          serviceName: grafana
+          servicePort: 3000
+  tls:
+  - hosts:
+    - prometheus.apps.shaker242.lab
+    secretName: prometheus-secret

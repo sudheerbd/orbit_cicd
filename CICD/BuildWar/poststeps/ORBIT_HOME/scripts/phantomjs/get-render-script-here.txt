@@ -1,0 +1,8 @@
+latest copy of orbit_image_renderer.js is required here
+
+Copy 
+	orbit_image_renderer.js
+from 
+	/orbit-web/src/main/webapp/WEB-INF/phantom/orbit_image_renderer.js
+to
+	this folder

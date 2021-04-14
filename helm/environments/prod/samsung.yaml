@@ -1,0 +1,77 @@
+cluster-configs:
+    configmaps:
+        name-config: orbit-config
+        namespace: samsung
+        host-name : samsung.orbitbi.com
+        mono-deployment-name : samsung-orbit
+        mono-svc-name : samsung-orbit-svc
+        mono-ing-name : samsung-orbit-ing
+        web-deployment-name : samsung-web
+        web-svc-name : samsung-web-svc
+        web-ing-name : samsung-web-ing
+        scheduler-deployment-name : samsung-scheduler
+        scheduler-svc-name : samsung-scheduler-svc
+        publisher-deployment-name : samsung-publisher
+        publisher-svc-name : samsung-publisher-svc
+        orbit_home_sync_image : bom.ocir.io/idgrosnf0lwv/orbit-int-repo/orbit_home_sync:ORBIT9.2.01.1
+        pv-name: samsung-volume
+        pvc-name: samsung-volume-claim
+        fss-path: /samsung
+        fss-ip: 172.23.2.5
+        orbit-config:
+            data:
+              db-url: jdbc:oracle:thin:@cicdadw_medium?TNS_ADMIN=/ORBIT_HOME/Wallet_cicdadw
+              db-user: samsung
+              db-password: samOrbit#1234
+              database-platform: org.eclipse.persistence.platform.database.OraclePlatform
+              driver-class-name: oracle.jdbc.OracleDriver
+              connection-test-query: select 1 from dual
+              maximum-pool-size: "10"
+              pool-name: MetaDataConnectionPool
+              show-sql: "true"
+              wait-for-jobs-to-complete-on-shutdown: "true"
+              quartz-jobStore-isClustered: "false"
+              quartz-scheduler-instanceName: OrbitSchedulerNode
+              servlet-context-path: /reporting
+              servlet-session-timeout: 180m
+              jot-expire-time: "180"
+              logging.console.enabled: "false"
+              spring-mail-host: smtp.gmail.com
+              spring-mail-port: "465"
+              spring-mail-username: abc@walkingtree.tech
+              spring-mail-password: xyz
+              spring-mail-properties-mail-smtp-ssl-trust: smtp.gmail.com
+              spring-mail-protocol: smtp
+              spring-mail-test-connection: "false"
+              spring-mail-properties-mail-smtp-auth: "true"
+              spring-mail-properties-mail-smtp.connectiontimeout: "5000"
+              spring-mail-properties-mail-smtp-timeout: "5000"
+              spring-mail-properties-mail-smtp-writetimeout: "5000"
+              spring-mail-properties-mail-smtp-starttls-enable: "true"
+              spring-mail-properties-mail-smtp-starttls-required: "true"
+              orbit-support-email: email_service@orbitanalytics.com
+              orbit-userlocales: ja
+              orbit-cuba-reporting-office-path: /usr/lib/libreoffice/program
+              orbit-cuba-reporting-office-ports: "6955,6956"
+              orbit-python-binary-path: /usr/bin/python3.5
+              orbit-r-binary-path: /usr/bin/R
+              orbit-cuba-reporting-office-doc-formatter-timeout: "500"
+              orbit-license-domain-name: orbitbi.com
+              mono-quartz-auto-startup: "true"
+              web-quartz-auto-startup: "false"
+              sch-quartz-auto-startup: "true"
+              pub-quartz-auto-startup: "true"
+              mono-orbit-int-reporting-base-url: http://samsung-orbit-svc/reporting
+              mono-orbit-web-node-url: http://samsung-orbit-svc/reporting
+              orbit-int-reporting-base-url: http://samsung-web-svc/reporting
+              orbit-web-node-url: http://samsung-web-svc/reporting
+              mono-orbit-scheduler-node-url: ""   
+              mono-orbit-publisher-node-url: ""
+              web-orbit-scheduler-node-url: http://samsung-scheduler-svc/reporting   
+              web-orbit-publisher-node-url: http://samsung-publisher-svc/reporting
+              sch-orbit-scheduler-node-url: ""   
+              sch-orbit-publisher-node-url: ""
+              pub-orbit-scheduler-node-url: "" 
+              pub-orbit-publisher-node-url: ""
+              orbit-cors-allowed-origins: "*"
+

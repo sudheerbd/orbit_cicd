@@ -1,0 +1,36 @@
+//skipRemainingStages = false
+
+//def Stage_Status_check
+pipeline {
+    agent any
+    environment {
+        KUBE_HOME       = "/root/.kube/${ENV_TYPE}"
+        PATH            = "/usr/local/bin:/usr/local/go/bin:/var/lib/snapd/snap/bin:$PATH"
+    }
+    parameters {
+            string defaultValue: params.INSTANCE_NAME ?: '', description: 'Namespace for each customer', name: 'INSTANCE_NAME', trim: false
+        }
+    stages {
+        stage('checkout') {
+            steps{
+                script {
+                    deleteDir()
+                    checkout scm
+                }
+            }
+        }   
+        stage('node creation') {
+            steps {
+                script {
+                    sh '${WORKSPACE}/terraform/node_creation.sh'    
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+

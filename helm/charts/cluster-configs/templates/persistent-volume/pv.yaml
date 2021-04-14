@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ index $.Values "cluster-configs" "configmaps" "pv-name" }}
+spec:
+  storageClassName: oci-fss
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 50Gi
+  mountOptions:
+  - nosuid
+  nfs:
+    path: {{ index $.Values "cluster-configs" "configmaps" "fss-path" }}
+    server: {{ index $.Values "cluster-configs" "configmaps" "fss-ip" }}
+    readOnly: false

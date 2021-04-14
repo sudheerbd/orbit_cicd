@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: {{ index $.Values "cluster-configs" "configmaps" "web-ing-name" }}
+  namespace: {{ index $.Values "cluster-configs" "configmaps" "namespace" }}
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  tls:
+  - secretName: tls-secret
+  rules:
+  - host: {{ index $.Values "cluster-configs" "configmaps" "host-name" }}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ index $.Values "cluster-configs" "configmaps" "web-svc-name" }}
+          servicePort: 80

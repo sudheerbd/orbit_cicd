@@ -1,0 +1,147 @@
+#!/usr/bin/env groovy
+
+skipRemainingStages = false
+
+def Stage_Status_check
+pipeline {
+    agent any
+    parameters {
+        booleanParam defaultValue: false, description: 'subnet Creation', name: 'NEED_SUBNET'
+        string defaultValue: params.INSTANCE_NAME ?: '', description: 'Namespace for each customer', name: 'INSTANCE_NAME', trim: false
+        choice choices: artifacts(), description: 'List of Artifacts', name: 'VERSION'
+        choice choices: ['internal', 'external',], description: 'select environment type', name: 'ENV_TYPE'
+        choice choices: ['en', 'fr','ko','ja',], description: 'Supported languages for namespace', name: 'LANGUAGE'
+    }
+    stages {
+        stage('checkout') {
+            steps {
+                script {
+                    deleteDir()
+                    checkout scm
+                    // sh '${WORKSPACE}/scripts/oci_config.sh'
+                }
+            }
+        }
+        stage('validate namespace') {
+            steps{
+                script {
+                        sh '''
+                        if [[ ! -d "${WORKSPACE}/helm/environments/${ENV_TYPE}" ]]
+                        then
+                            mkdir -p ${WORKSPACE}/helm/environments/${ENV_TYPE}
+                        fi
+                        cd ${WORKSPACE}/helm/environments/${ENV_TYPE} 
+                        git ls-files > ${WORKSPACE}/helm/environments/${ENV_TYPE}/parameters.txt
+                        '''
+                        def list = readFile("${WORKSPACE}/helm/environments/${ENV_TYPE}/parameters.txt").readLines()
+                        for (item in list) {
+                            def (value1, value2) = item.tokenize( '.' )
+                            if (value1 == "${INSTANCE_NAME}") {
+                                println "Username already exist"
+                                skipRemainingStages = true
+                            }
+                        }
+                        sh 'rm -rf ${WORKSPACE}/helm/environments/${ENV_TYPE}/parameters.txt'
+                }
+            }
+        }
+        stage('file system') {
+            when {
+                expression {
+                    !skipRemainingStages
+                }
+            }
+            steps {
+                script {
+                    Stage_Status_check=env.STAGE_NAME
+                    sh '${WORKSPACE}/terraform/tf_apply.sh' 
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "Filesystem Stage Failed"
+                        sh '${WORKSPACE}/terraform/tf_destroy.sh'
+                        
+                    }
+                }
+            }
+        }
+        stage('user schema') {
+            when {
+                expression {
+                    !skipRemainingStages
+                }
+            }
+            steps {
+                script {
+                    Stage_Status_check=env.STAGE_NAME
+                    sh '${WORKSPACE}/scripts/user_schema.sh'
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "Userschema Stage Failed"
+                        sh '${WORKSPACE}/terraform/tf_destroy.sh'
+                        sh '${WORKSPACE}/scripts/sql_del_user.sh'
+                    }
+                }
+            }
+        }
+        stage('go deployment') {
+            when {
+                expression {
+                    !skipRemainingStages
+                }
+            }
+            steps {
+                script {
+                    Stage_Status_check=env.STAGE_NAME
+                    sh '${WORKSPACE}/scripts/go_run.sh'
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "Deployment Stage Failed"
+                        sh '${WORKSPACE}/terraform/tf_destroy.sh'
+                        sh '${WORKSPACE}/scripts/sql_del_user.sh'
+                        sh '${WORKSPACE}/scripts/kubectl.sh'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            script {
+                parallel (
+                    destroy_orbit_instance: {
+                        build(job: 'destroy_orbit_instance', propagate: false)
+                    },
+                    hot_deploy: {
+                        build(job: 'hot_deploy', propagate: false)
+                })
+            }
+        }
+    }
+}
+
+def artifacts () {
+  node {
+      script {
+          deleteDir()
+          checkout scm
+          def jfrog_version_list = ["Select",];
+          sh '${WORKSPACE}/scripts/ocr_repos.sh'
+          def list = readFile("${WORKSPACE}/scripts/version.txt").readLines()
+          for (item in list) {
+              jfrog_version_list.add("$item")
+          }
+          sh 'rm -rf ${WORKSPACE}/scripts/version.txt'
+          println jfrog_version_list
+          return jfrog_version_list;
+          }
+      }
+  }

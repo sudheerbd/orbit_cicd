@@ -1,0 +1,129 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+    parameters {
+        choice choices: artifacts(), description: 'List of Artifacts', name: 'VERSION'
+    }
+    stages{
+        stage('Clone Repository') {
+            steps{
+                script{
+                    deleteDir()
+                    checkout scm
+                }
+            }
+        }
+        stage('Download Artifacts') {
+            steps {
+                script {
+                    def server = Artifactory.server 'Internal-Artifactory'
+                    def buildInfo = Artifactory.newBuildInfo()
+                    buildInfo.env.capture = true
+                    def downloadSpec = """{
+                        "files": [{
+                            "pattern": "orbit-releases/${VERSION}/reporting.war"
+                        },
+                        {
+                            "pattern": "orbit-releases/${VERSION}/ORBIT_HOME.zip"
+                        },
+                        {
+                            "pattern": "orbit-files/Wallet_cicdinternal.zip"
+                        },
+                        {
+                            "pattern": "orbit-files/orbit.properties"
+                        },
+                        {
+                            "pattern": "orbit-files/server.xml"
+                        },
+                        {
+                            "pattern": "orbit-files/setenv.sh"
+                        },
+                        {
+                            "pattern": "orbit-files/logging.properties"
+                        },
+                        {
+                            "pattern": "orbit-files/tomcat-users.xml"
+                        },
+                        {
+                            "pattern": "orbit-files/licenses/web/ORBITBI_5D_5S_10E_105DAYS.orbitlic"
+                        },
+                        {
+                            "pattern": "orbit-files/licenses/scheduler/SCHSVC_BI_5D_5S_10E_87DAYS.orbitlic"
+                        },
+                        {
+                            "pattern": "orbit-files/licenses/publisher/PUBSVC_BI_5D_5S_10E_87DAYS.orbitlic"
+                        }]
+                    }"""
+                    server.download(downloadSpec)
+                    rtBuildInfo (maxBuilds: 1, maxDays: 2, doNotDiscardBuilds: ["3"], deleteBuildArtifacts: true)
+                    server.publishBuildInfo buildInfo
+                }
+            }
+        }
+
+        stage('Building mono image') {
+            steps{
+                script {
+                    sh 'mv server.xml tomcat-users.xml logging.properties setenv.sh ${WORKSPACE}/dockerfiles/mono'
+                    sh 'mv ${VERSION}/reporting.war  ${WORKSPACE}/dockerfiles/mono'
+                    sh 'docker build --network=host -t orbitmono:${VERSION} ${WORKSPACE}/dockerfiles/mono'
+                }
+            }
+        }
+        stage('Building orbit_sync image') {
+            steps{
+                script {
+                    sh 'unzip -q  ${VERSION}/ORBIT_HOME.zip -d ${WORKSPACE}/dockerfiles/orbit_home_sync'
+                    sh 'mv orbit.properties ${WORKSPACE}/dockerfiles/orbit_home_sync/ORBIT_HOME/conf'
+                    sh 'mkdir -p ${WORKSPACE}/dockerfiles/orbit_home_sync/ORBIT_HOME/adw_wallet'
+                    sh 'unzip -q Wallet_cicdinternal.zip -d ${WORKSPACE}/dockerfiles/orbit_home_sync/ORBIT_HOME/adw_wallet'
+                    sh 'mv ${WORKSPACE}/licenses/web/ORBITBI_5D_5S_10E_105DAYS.orbitlic dockerfiles/orbit_home_sync/ORBIT_HOME/licenses'
+                    sh 'mv ${WORKSPACE}/licenses/scheduler/SCHSVC_BI_5D_5S_10E_87DAYS.orbitlic dockerfiles/orbit_home_sync/ORBIT_HOME/licenses'
+                    sh 'mv ${WORKSPACE}/licenses/publisher/PUBSVC_BI_5D_5S_10E_87DAYS.orbitlic dockerfiles/orbit_home_sync/ORBIT_HOME/licenses'
+                    sh 'docker build --network=host -t orbit_home_sync:${VERSION} ${WORKSPACE}/dockerfiles/orbit_home_sync'
+                }
+            }
+        }
+
+        stage('Push mono Image') {
+            steps{
+                script{
+                    docker.withRegistry('https://bom.ocir.io','OCRlogin') {
+                    sh 'docker tag orbitmono:${VERSION} bom.ocir.io/idgrosnf0lwv/orbit-int-repo/mono:${VERSION}'
+                    sh 'docker push bom.ocir.io/idgrosnf0lwv/orbit-int-repo/mono:${VERSION}'
+                    }
+                }
+            } 
+        }
+        stage('Push orbit_home_sync Image') {
+            steps{
+                script{
+                    docker.withRegistry('https://bom.ocir.io','OCRlogin') {
+                    sh 'docker tag orbit_home_sync:${VERSION} bom.ocir.io/idgrosnf0lwv/orbit-int-repo/orbit_home_sync:${VERSION}'
+                    sh 'docker push bom.ocir.io/idgrosnf0lwv/orbit-int-repo/orbit_home_sync:${VERSION}'
+                    }
+                }
+            } 
+        }
+    }
+}
+
+def artifacts () {
+
+    node {
+        script {
+            deleteDir()
+            checkout scm
+            def jfrog_version_list = ["Select",];
+            sh '${WORKSPACE}/scripts/jfrog_repos.sh'
+            def list = readFile("${WORKSPACE}/scripts/version.txt").readLines()
+            for (item in list) {
+                jfrog_version_list.add("$item")
+            }
+            sh 'rm -rf ${WORKSPACE}/scripts/version.txt'  
+            println jfrog_version_list
+            return jfrog_version_list;
+            }
+        }
+    }

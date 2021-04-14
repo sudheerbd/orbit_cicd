@@ -1,0 +1,2 @@
+namespace: my-customer
+image: bom.ocir.io/idgrosnf0lwv/orbit-web-repo/orbit-web:1141

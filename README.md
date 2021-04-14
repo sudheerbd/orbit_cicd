@@ -1,2 +1,0 @@
-# QBusinessServices
-# orbit_cicd

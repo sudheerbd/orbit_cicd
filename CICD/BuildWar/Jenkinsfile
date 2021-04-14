@@ -1,0 +1,549 @@
+pipeline {
+	parameters {
+		booleanParam defaultValue: true, description: 'Perform GIT Checkout', name: 'CHECKOUT'
+		booleanParam defaultValue: true, description: 'perform build', name: 'BUILD'
+		booleanParam defaultValue: true, description: 'push artifacts to jfrog', name: 'PUSH_TO_ARTIFACTORY'
+		booleanParam defaultValue: true, description: 'perform addons build', name: 'ADDONS_BUILD'
+		booleanParam defaultValue: true, description: 'perform extn build', name: 'EXTN_BUILD'
+		booleanParam defaultValue: true, description: 'Send notification email', name: 'NOTIFY'
+		choice choices: ['tomcat', 'weblogic',], description: 'Choose build server', name: 'SERVER_TYPE'
+		//extendedChoice defaultValue: 'master', description: 'Branch name to fetch from bitbucket', multiSelectDelimiter: ',', name: 'BRANCH_NAME', propertyFile: 'D:\\Jenkins_Home\\workspace\\OrbitBootBuild\\bootbranches.properties', propertyKey: 'branches', quoteValue: false, saveJSONParameterToFile: false, type: 'PT_SINGLE_SELECT', visibleItemCount: 5
+		string defaultValue: params.BRANCH_NAME ?: 'master', description: 'Branch name to fetch form bitbucket', name: 'BRANCH_NAME', trim: false
+		choice choices: ['Extjs_7.2', 'Extjs_6.7', 'Extjs_6.5.3'], description: 'ExtJs version used for the build', name: 'EXTJS_VERSION'
+		booleanParam defaultValue: false, description: 'is development build?', name: 'IS_DEVELOPMENT'
+		booleanParam defaultValue: false, description: 'Check this to run code analysis', name: 'SOURCECODE_ANALYSIS'
+
+		booleanParam defaultValue: false, description: 'Check this to deploy to below server', name: 'DEPLOY1'
+		choice choices: ['orbdev01.orbit8.com', 'orbdev02.orbit8.com','orbdev06.orbit8.com', 'orbdev09.orbit8.com','ebsdev02.orbit8.com', 'sales4.orbit8.com', 'orbdev07.orbit8.com'], description: 'Deploy to hostname', name: 'TOMCAT_HOSTNAME1'
+		choice choices: ['5050', '6060', '7070', '7075','7609', '5051', '6061', '7071', '5052', '6062', '7072', '5060', '5070', '6065', '7500', '7603', '9090', '8080'], description: 'Deploy to port', name: 'TOMCAT_PORT1'
+		string defaultValue: params.TOMCAT_USERNAME1 ?: 'tomcat', description: 'tomcat1 manager username to deploy', name: 'TOMCAT_USERNAME1', trim: false
+		string defaultValue: params.TOMCAT_PASSWORD1 ?: 'Orb1t!@#123', description: 'tomcat1 manager password to deploy', name: 'TOMCAT_PASSWORD1', trim: false
+
+		booleanParam defaultValue: false, description: 'Check this to deploy to below server', name: 'DEPLOY2'
+		choice choices: ['orbdev01.orbit8.com', 'orbdev02.orbit8.com','orbdev06.orbit8.com', 'orbdev09.orbit8.com','ebsdev02.orbit8.com', 'sales4.orbit8.com', 'orbdev07.orbit8.com'], description: 'Deploy to hostname', name: 'TOMCAT_HOSTNAME2'
+		choice choices: ['5050', '6060', '7070', '7075','7609', '5051', '6061', '7071', '5052', '6062', '7072', '5060', '5070', '6065', '7500', '7603', '9090', '8080'], description: 'Deploy to port', name: 'TOMCAT_PORT2'
+		string defaultValue: params.TOMCAT_USERNAME2 ?: 'tomcat', description: 'tomcat2 manager username to deploy', name: 'TOMCAT_USERNAME2', trim: false
+		string defaultValue: params.TOMCAT_PASSWORD2 ?: 'Orb1t!@#123', description: 'tomcat2 manager password to deploy', name: 'TOMCAT_PASSWORD2', trim: false
+
+
+		booleanParam defaultValue: false, description: 'Check this to deploy to below server', name: 'DEPLOY3'
+		choice choices: ['orbdev01.orbit8.com', 'orbdev02.orbit8.com','orbdev06.orbit8.com', 'orbdev09.orbit8.com','ebsdev02.orbit8.com', 'sales4.orbit8.com', 'orbdev07.orbit8.com'], description: 'Deploy to hostname', name: 'TOMCAT_HOSTNAME3'
+		choice choices: ['5050', '6060', '7070', '7075','7609', '5051', '6061', '7071', '5052', '6062', '7072', '5060', '5070', '6065', '7500', '7603', '9090', '8080'], description: 'Deploy to port', name: 'TOMCAT_PORT3'
+		string defaultValue: params.TOMCAT_USERNAME3 ?: 'tomcat', description: 'tomcat3 manager username to deploy', name: 'TOMCAT_USERNAME3', trim: false
+		string defaultValue: params.TOMCAT_PASSWORD3 ?: 'Orb1t!@#123', description: 'tomcat3 manager password to deploy', name: 'TOMCAT_PASSWORD3', trim: false
+	}
+	options {
+        disableConcurrentBuilds()
+    }
+	agent any
+	stages {
+		stage('Clone Repository'){
+		    steps{
+              	script{
+					if (isUnix()) {
+                  		deleteDir()
+                  		checkout scm
+						sh 'chmod -R 700 ${WORKSPACE}/CICD/BuildWar'
+					}
+                }
+			}
+		}
+		stage('GIT checkout (parallel)') {
+			when {
+				expression { params.CHECKOUT }
+			}
+
+			options {
+				timeout(time: 1, unit: 'HOURS')
+			}
+			parallel {
+				stage('orbithelp checkout') {
+					steps {
+						script {
+							if (isUnix()) {
+								checkout(
+									[$class: 'GitSCM', 
+									branches: [[name: '*/boot']], 
+									doGenerateSubmoduleConfigurations: false, 
+									extensions: 
+										[[$class: 'CheckoutOption', timeout: 36], 
+										[$class: 'CloneOption', 
+											noTags: true, 
+											reference: 'orbithelp', 
+											shallow: true, 
+											timeout: 30],
+										[$class: 'RelativeTargetDirectory', 
+											relativeTargetDir: 'orbithelp']], 
+									submoduleCfg: [], 
+									userRemoteConfigs: 
+										[[credentialsId: 'jenkins_ssh_key', 
+										name: 'orbithelp', 
+										url: 'https://orbitbuildmanager@bitbucket.org/orbitanalytics/orbithelp.git']]
+										])
+							} else {
+								checkout(
+									[$class: 'GitSCM', 
+									branches: [[name: '*/boot']], 
+									doGenerateSubmoduleConfigurations: false, 
+									extensions: 
+										[[$class: 'CheckoutOption', timeout: 36], 
+										[$class: 'CloneOption', 
+											noTags: true, 
+											reference: 'orbithelp', 
+											shallow: true, 
+											timeout: 30],
+										[$class: 'RelativeTargetDirectory', 
+											relativeTargetDir: 'orbithelp']], 
+									submoduleCfg: [], 
+									userRemoteConfigs: 
+										[[credentialsId: 'myid', 
+										name: 'orbithelp', 
+										url: 'https://bitbucket.org/orbitanalytics/orbithelp.git']]
+										])
+							}
+						}
+					}
+				}
+				stage('Orbitreporting checkout') {
+					steps {
+						script {
+							if (isUnix()) {
+								// sshagent(['sshkey']) {
+									//sh 'sudo /usr/bin/bash ${WORKSPACE}/CICD/BuildWar/git_clone/orbitreporting_clone.sh'
+								//}
+								checkout(
+									[$class: 'GitSCM', 
+									branches: [[name: '*/${BRANCH_NAME}']], 
+									doGenerateSubmoduleConfigurations: false, 
+									extensions: 
+										[[$class: 'CheckoutOption', timeout: 36], 
+										[$class: 'CloneOption', 
+											noTags: true, 
+											reference: 'orbitbootapp', 
+											shallow: true, 
+											timeout: 30],
+										[$class: 'RelativeTargetDirectory', 
+											relativeTargetDir: 'orbitbootapp']], 
+									submoduleCfg: [], 
+									userRemoteConfigs: 
+										[[credentialsId: 'jenkins_ssh_key', 
+										name: 'orbitbootapp', 
+										url: 'https://orbitbuildmanager@bitbucket.org/orbitanalytics/orbitbootapp.git']]
+									])
+							} else {
+								bat 'buildscripts/git_clone/orbitreporting_clone.bat'
+							}
+						}
+					}
+					post {
+						failure {
+							steps{
+								script {
+									echo 'Orbit Reporting checkout failed'
+								}
+							}
+						}
+					}
+				}
+				stage('Orbitextn checkout') {
+					steps {
+						script {
+							if (isUnix()) {
+								// sshagent(['sshkey']) {
+									// sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/git_clone/orbitextn_clone.sh'
+								// }
+								checkout(
+									[$class: 'GitSCM', 
+									branches: [[name: '*/development_8.7']], 
+									doGenerateSubmoduleConfigurations: false, 
+									extensions: 
+										[[$class: 'CheckoutOption', timeout: 36], 
+										[$class: 'CloneOption', 
+											noTags: true, 
+											reference: 'orbitextn', 
+											shallow: true, 
+											timeout: 30],
+										[$class: 'RelativeTargetDirectory', 
+											relativeTargetDir: 'orbitextn']], 
+									submoduleCfg: [], 
+									userRemoteConfigs: 
+										[[credentialsId: 'jenkins_ssh_key', 
+										name: 'orbitextn', 
+										url: 'https://orbitbuildmanager@bitbucket.org/orbitanalytics/orbitextn.git']]
+									])
+							} else {
+								bat 'buildscripts/git_clone/orbitextn_clone.bat'
+							}
+						}
+					}
+					post {
+						failure {
+							steps{
+								script {
+									echo 'Orbit Reporting checkout failed'
+								}
+							}
+						}
+					}
+				}
+			}
+		}		
+		stage('Builds') {
+			when {
+				expression { params.BUILD }
+			}
+			stages {
+				stage('Orbit reporting build') {
+					when {
+						expression { !params.SOURCECODE_ANALYSIS }
+					}
+					steps {
+						script {						    
+							if (isUnix()) {
+								sh '${WORKSPACE}/scripts/env_variables.sh'
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/build/reporting/reporting_deploy.sh'
+							} else {
+								bat 'buildscripts/build/reporting/reporting_deploy.bat'
+							}
+						}
+					}
+				}
+				stage('Orbit extn build') {
+					when {
+						expression { params.EXTN_BUILD }
+					}
+					steps {
+						script {						    
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/build/extn/orbextn_deploy.sh'
+							} else {
+								bat 'buildscripts/build/extn/orbextn_deploy.bat'
+							}
+						}
+					}
+				}
+				stage('Orbit external_extn build') {
+					when {
+						expression { params.EXTN_BUILD }
+					}
+					steps {
+						script {						    
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/build/external_extn/orbextn_deploy.sh'
+							} else {
+								bat 'buildscripts/build/external_extn/orbextn_deploy.bat'
+							}
+						}
+					}
+				}
+				stage('Orbit addons build') {
+					when {
+						expression { params.ADDONS_BUILD }
+					}
+					steps {
+						script {
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/build/excel_addons/GLSenseBuild.sh'
+							} else {
+								bat 'buildscripts/build/excel_addons/GLSenseBuild.bat'
+							}
+						}
+					}
+				}
+				stage('Add extn lib for tomcat (poststep)') {
+					when {
+						expression { params.SERVER_TYPE == 'tomcat' && !params.SOURCECODE_ANALYSIS }
+					}
+					steps {
+						script {						    
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/poststeps/tomcat_copy/addorbextnlib.sh'
+							} else {
+								bat 'buildscripts/poststeps/tomcat_copy/addorbextnlib.bat'
+							}
+						}
+					}
+				}
+				stage('Add extn lib for weblogic (poststep)') {
+					when {
+						expression { params.SERVER_TYPE == 'weblogic' && !params.SOURCECODE_ANALYSIS }
+					}
+					steps {
+						script {
+							if (isUnix()) {
+							//	sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/poststeps/weblogic_copy/weblogic_builds.sh'
+							} else {
+								bat 'buildscripts/poststeps/weblogic_copy/weblogic_builds.bat'
+							}						    
+						}
+					}
+				}
+				stage('Orbit home build') {
+					when {
+						expression { params.EXTN_BUILD && !params.SOURCECODE_ANALYSIS }
+					}
+					steps {
+						script {						    
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/poststeps/build_orb_home/build.sh'
+							} else {
+								bat 'buildscripts/poststeps/build_orb_home/build.bat'
+							}
+						}
+					}
+				}
+			}
+		}
+		stage('SonarQube analysis') {
+			when {
+				expression { params.SOURCECODE_ANALYSIS }
+			}
+			steps {
+				withSonarQubeEnv('sonarqube') {
+					script {
+	        			if (isUnix()) {
+							// sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/build/reporting/sonar_analysis.sh'
+						} else {
+							bat 'buildscripts/build/reporting/sonar_analysis.bat'
+						}
+	        		}	
+				}
+			}
+		}
+		stage('Upload Artifacts') {
+			when {
+				expression { params.PUSH_TO_ARTIFACTORY }
+			}
+	      	steps {
+	        	script {
+					if (isUnix()) {
+						// sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/deploy/deploy_artifactory.sh'
+						upload_artifacts_to_jfrog()
+					} else {
+						bat 'buildscripts/deploy/deploy_artifactory.bat'
+					}
+	        	}
+	      	}
+		  	post {
+    			success {
+					script {
+						parallel (
+							test1_build_mono: {
+								build(job: 'test1_build_mono', propagate: false)
+							},
+							test1_create_instance: {
+								build(job: 'test1_create_instance', propagate: false)
+							},
+							test1_hot_deploy: {
+								build(job: 'test1_hot_deploy', propagate: false)
+						})
+					}
+				}
+    		}
+	    }
+		stage('Startup Notification(parallel)'){
+			when {
+				expression {params.NOTIFY}
+			}
+			parallel {
+				stage('Notification for deployement1') {
+					when {
+						expression { params.DEPLOY1 }
+					}
+					steps {
+						emailext body: '''#$BUILD_NUMBER - Build triggered ${CAUSE}, In next 10 min ${BRANCH_NAME} will be deployed to http://${TOMCAT_HOSTNAME1}:${TOMCAT_PORT1}/reporting
+
+<h3>Please save your work!!!</h3>
+<h3>Reporting Changes:</h3>
+<pre>
+${FILE, path="reporting_changes.txt"}
+</pre>
+<h3>Extn Changes:</h3>
+<pre>
+${FILE, path="extn_changes.txt"}
+</pre>
+
+Check console output at $BUILD_URL to view the results.''', 
+						subject: '#$BUILD_NUMBER - $(BRANCH_NAME} will be deployed in ${TOMCAT_HOSTNAME1}:${TOMCAT_PORT1}, ${CAUSE}', 
+						to: 'devops@orbitanalytics.com, product_testing@orbitanalytics.com, documentation@orbitanalytics.com'
+					}
+				}
+				stage('Notification for deployement2') {
+					when {
+						expression { params.deploy2 }
+					}
+					steps {
+						emailext body: '''#$BUILD_NUMBER - Build triggered ${CAUSE}, In next 10 min ${BRANCH_NAME} will be deployed to http://${TOMCAT_HOSTNAME2}:${TOMCAT_PORT2}/reporting
+
+<h3>Please save your work!!!</h3>
+<h3>Reporting Changes:</h3>
+<pre>
+${FILE, path="reporting_changes.txt"}
+</pre>
+<h3>Extn Changes:</h3>
+<pre>
+${FILE, path="extn_changes.txt"}
+</pre>
+
+Check console output at $BUILD_URL to view the results.''', 
+						subject: '#$BUILD_NUMBER - ${BRANCH_NAME} will be deployed in ${TOMCAT_HOSTNAME2}:${TOMCAT_PORT2}, ${CAUSE}', 
+						to: 'devops@orbitanalytics.com, product_testing@orbitanalytics.com, documentation@orbitanalytics.com'
+					}
+				}
+				stage('Notification for deployement3') {
+					when {
+						expression { params.deploy3 }
+					}
+					steps {
+						emailext body: '''#$BUILD_NUMBER - Build triggered ${CAUSE}, In next 10 min ${BRANCH_NAME} will be deployed to http://${TOMCAT_HOSTNAME3}:${TOMCAT_PORT3}/reporting
+
+<h3>Please save your work!!!</h3>
+<h3>Reporting Changes:</h3>
+<pre>
+${FILE, path="reporting_changes.txt"}
+</pre>
+<h3>Extn Changes:</h3>
+<pre>
+${FILE, path="extn_changes.txt"}
+</pre>
+
+Check console output at $BUILD_URL to view the results.''', 
+						subject: '#$BUILD_NUMBER - ${BRANCH_NAME} will be deployed in ${TOMCAT_HOSTNAME3}:${TOMCAT_PORT3}, ${CAUSE}', 
+						to: 'devops@orbitanalytics.com, product_testing@orbitanalytics.com, documentation@orbitanalytics.com'
+					}
+				}
+			}
+		}
+		stage('Orbit deployments (parallel)'){
+			//when {
+				//expression {params.DEPLOY1}
+			//}
+			parallel {
+				stage('deploy1') {
+					when {
+						expression {params.DEPLOY1}
+					}
+					steps{
+						script {
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/deploy/deploy1.sh'
+							} else {
+								bat 'buildscripts/deploy/deploy1.bat'
+							}
+						}
+					}
+					post {
+						failure {
+							emailext attachLog: true, 
+							body: ''' #$BUILD_NUMBER - ${BRANCH_NAME} failed deploying to http://${TOMCAT_HOSTNAME1}:${TOMCAT_PORT1}/reporting
+
+<h3>Please check attached logs!!!</h3>
+
+Check console output at $BUILD_URL to view the results.''', 
+							subject: 'Failed deploying!!!! #$BUILD_NUMBER - ${BRANCH_NAME} deploying to ${TOMCAT_HOSTNAME1}:${TOMCAT_PORT1}', 
+							to: 'devops@orbitanalytics.com'
+						}
+						success {
+							emailext body: '''#$BUILD_NUMBER - ${BRANCH_NAME} Successfully deployed to ${TOMCAT_HOSTNAME1} ${TOMCAT_PORT1}
+
+<h3>You can start accessing this build at http://${TOMCAT_HOSTNAME1}:${TOMCAT_PORT1}/reporting </h3>
+
+Check console output at $BUILD_URL to view the results.''', 
+							subject: '#$BUILD_NUMBER - ${BRANCH_NAME} Successfully deployed to ${TOMCAT_HOSTNAME1}:${TOMCAT_PORT1}', 
+							to: 'devops@orbitanalytics.com, product_testing@orbitanalytics.com, documentation@orbitanalytics.com'
+						}
+					}
+				}
+				stage('deploy2') {
+					when {
+						expression {params.DEPLOY2}
+					}
+					steps{
+						script {
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/deploy/deploy2.sh'
+							} else {
+								bat 'buildscripts/deploy/deploy2.bat'
+							}
+						}
+					}
+					post {
+						failure {
+							emailext attachLog: true, 
+							body: ''' #$BUILD_NUMBER - $BRANCH_NAME failed deploying to http://${TOMCAT_HOSTNAME2}:${TOMCAT_PORT2}/reporting
+
+<h3>Please check attached logs!!!</h3>
+
+Check console output at $BUILD_URL to view the results.''', 
+							subject: 'Failed deploying!!!! #$BUILD_NUMBER - ${BRANCH_NAME} deploying to ${TOMCAT_HOSTNAME2}:${TOMCAT_PORT2}', 
+							to: 'devops@orbitanalytics.com'
+						}
+						success {
+							emailext body: '''#$BUILD_NUMBER - ${BRANCH_NAME} Successfully deployed to ${TOMCAT_HOSTNAME2} ${TOMCAT_PORT2}
+
+<h3>You can start accessing this build at http://${TOMCAT_HOSTNAME2}:${TOMCAT_PORT2}/reporting </h3>
+
+Check console output at $BUILD_URL to view the results.''', 
+							subject: '#$BUILD_NUMBER - ${BRANCH_NAME} Successfully deployed to ${TOMCAT_HOSTNAME2}:${TOMCAT_PORT2}', 
+							to: 'devops@orbitanalytics.com, product_testing@orbitanalytics.com, documentation@orbitanalytics.com'
+						}
+					}
+				}
+				stage('deploy3') {
+					when {
+						expression {params.DEPLOY3}
+					}
+					steps{
+						script {
+							if (isUnix()) {
+								sh '/usr/bin/bash ${WORKSPACE}/CICD/BuildWar/deploy/deploy3.sh'
+							} else {
+								bat 'buildscripts/deploy/deploy3.bat'
+							}
+						}
+					}
+					post {
+						failure {
+							emailext attachLog: true, 
+							body: ''' #$BUILD_NUMBER - ${BRANCH_NAME} failed deploying to http://${TOMCAT_HOSTNAME3}:${TOMCAT_PORT3}/reporting
+
+<h3>Please check attached logs!!!</h3>
+
+Check console output at $BUILD_URL to view the results.''', 
+							subject: 'Failed deploying!!!! #$BUILD_NUMBER - ${BRANCH_NAME} deploying to ${TOMCAT_HOSTNAME3}:${TOMCAT_PORT3}', 
+							to: 'devops@orbitanalytics.com'
+						}
+						success {
+							emailext body: '''#$BUILD_NUMBER - ${BRANCH_NAME} Successfully deployed to ${TOMCAT_HOSTNAME3} ${TOMCAT_PORT3}
+
+<h3>You can start accessing this build at http://${TOMCAT_HOSTNAME3}:${TOMCAT_PORT3}/reporting </h3>
+
+Check console output at $BUILD_URL to view the results.''', 
+							subject: '#$BUILD_NUMBER - ${BRANCH_NAME} Successfully deployed to ${TOMCAT_HOSTNAME3}:${TOMCAT_PORT3}', 
+							to: 'devops@orbitanalytics.com, product_testing@orbitanalytics.com, documentation@orbitanalytics.com'
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+def upload_artifacts_to_jfrog() {
+	def server = Artifactory.server 'Art1'
+	def buildInfo = Artifactory.newBuildInfo()
+	buildInfo.env.capture = true
+	def uploadSpec = """{
+		"files": [{
+			"pattern": "${WORKSPACE}/${SERVER_TYPE}/${BRANCH_NAME}/builds/reporting.war",
+			"target": "orbit-releases/${BRANCH_NAME}/reporting.war"
+		},
+		{
+			"pattern": "${WORKSPACE}/${SERVER_TYPE}/${BRANCH_NAME}/builds/ORBIT_HOME.zip",
+			"target": "orbit-releases/${BRANCH_NAME}/ORBIT_HOME.zip"
+		}]
+	}"""
+	server.upload(uploadSpec)
+	rtBuildInfo (maxBuilds: 1, maxDays: 2, doNotDiscardBuilds: ["3"], deleteBuildArtifacts: true)
+	server.publishBuildInfo buildInfo
+}

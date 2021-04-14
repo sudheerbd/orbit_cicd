@@ -1,0 +1,136 @@
+#!/usr/bin/env groovy
+
+List env_list = ["\"Select:selected\"","\"internal\"","\"external\""]
+
+String buildScript(List values){
+  return "$values"
+}
+String environments = buildScript(env_list)
+
+List internal_namespace_list = internal_list_namespaces()
+List external_namespace_list = external_list_namespaces()
+
+String internal_namespaces = buildScript(internal_namespace_list)
+String external_namespaces = buildScript(external_namespace_list)
+
+println internal_namespaces
+println external_namespaces
+
+properties([
+    parameters([
+        [ $class: 'ChoiceParameter',
+          choiceType: 'PT_SINGLE_SELECT',
+          description: 'Select a environment',
+          name: 'ENV_TYPE',
+          script: [$class: 'GroovyScript', script: [classpath: [], sandbox: false, script: environments]]
+        ],
+
+        [ $class: 'CascadeChoiceParameter', 
+          choiceType: 'PT_SINGLE_SELECT', 
+          description: 'Select a namespace', 
+          name: 'INSTANCE_NAME', 
+          referencedParameters: 'ENV_TYPE', 
+          script: [$class: 'GroovyScript', script: [ classpath: [], sandbox: true, 
+          script: """ switch(ENV_TYPE){
+                        case "internal" : return $internal_namespaces
+                        case "external" : return $external_namespaces
+                        default: return ["N/A"]
+                    } """.stripIndent()]]
+        ]
+    ])
+])
+
+
+pipeline {
+  agent any
+  parameters {
+    choice choices: artifacts(), description: 'List of Artifacts', name: 'VERSION'
+  }
+  stages{
+    stage('Clone Repository'){
+      steps{
+          script{
+              deleteDir()
+              checkout scm
+            }
+          }
+    }
+    stage('Check running pods') {
+      steps{
+        script {
+          sh '${WORKSPACE}/scripts/version_upgrade.sh'
+        }
+      }
+    }
+  }
+}
+
+def artifacts () {
+  node {
+      script {
+          deleteDir()
+          checkout scm
+          def jfrog_version_list = ["Select",];
+          sh '${WORKSPACE}/scripts/ocr_repos.sh'
+          def list = readFile("${WORKSPACE}/scripts/version.txt").readLines()
+          for (item in list) {
+              jfrog_version_list.add("$item")
+          }
+          sh 'rm -rf ${WORKSPACE}/scripts/version.txt'  
+          println jfrog_version_list
+          return jfrog_version_list;
+          }
+      }
+  }
+
+def internal_list_namespaces() {
+  node {
+    script {
+      deleteDir()
+      checkout scm
+      sh '''
+        if [[ ! -d "${WORKSPACE}/helm/environments/internal" ]]
+        then
+          mkdir -p ${WORKSPACE}/helm/environments/internal
+        fi
+        cd ${WORKSPACE}/helm/environments/internal
+        git ls-files > ${WORKSPACE}/helm/environments/internal/parameters.txt
+      '''
+      def internal_new_list = ["\"Select:selected\"",];
+      def internal_list = readFile("${WORKSPACE}/helm/environments/internal/parameters.txt").readLines()
+      for (item in internal_list) {
+          def (value1, value2) = item.tokenize( '.' )
+          internal_new_list.add("\"$value1\"")
+      }
+      sh "rm -rf ${WORKSPACE}/helm/environments/internal/parameters.txt"
+      println internal_new_list
+      return internal_new_list;
+    }
+  }
+}
+
+def external_list_namespaces() {
+  node {
+    script {
+      deleteDir()
+      checkout scm
+      sh '''
+        if [[ ! -d "${WORKSPACE}/helm/environments/external" ]]
+        then
+          mkdir -p ${WORKSPACE}/helm/environments/external
+        fi
+        cd ${WORKSPACE}/helm/environments/external
+        git ls-files > ${WORKSPACE}/helm/environments/external/parameters.txt
+      '''
+      def external_new_list = ["\"Select:selected\"",];
+      def external_list = readFile("${WORKSPACE}/helm/environments/external/parameters.txt").readLines()
+      for (item in external_list) {
+          def (value1, value2) = item.tokenize( '.' )
+          external_new_list.add("\"$value1\"")
+      }
+      sh 'rm -rf ${WORKSPACE}/helm/environments/external/parameters.txt'
+      println external_new_list
+      return external_new_list;
+    }
+  }
+}
