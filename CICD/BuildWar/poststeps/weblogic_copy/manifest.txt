@@ -1,0 +1,5 @@
+Implementation-Title: OrbitJars
+Implementation-Version: 1.0
+Specification-Title: OrbitJars
+Specification-Version: 1.0
+Extension-Name: OrbitJars

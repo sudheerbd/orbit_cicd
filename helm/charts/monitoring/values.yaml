@@ -1,0 +1,5 @@
+cluster-configs:
+  configmaps:
+    orbit-config:
+      namespace: [ abcd ]
+      name: orbit-config

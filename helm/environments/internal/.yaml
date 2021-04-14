@@ -1,0 +1,77 @@
+cluster-configs:
+    configmaps:
+        name-config: orbit-config
+        namespace: 
+        host-name : .preprod.orbitbi.com
+        mono-deployment-name : -select
+        mono-svc-name : -orbit-svc
+        mono-ing-name : -orbit-ing
+        web-deployment-name : -web
+        web-svc-name : -web-svc
+        web-ing-name : -web-ing
+        scheduler-deployment-name : -scheduler
+        scheduler-svc-name : -scheduler-svc
+        publisher-deployment-name : -publisher
+        publisher-svc-name : -publisher-svc
+        orbit_home_sync_image : hyd.ocir.io/idgrosnf0lwv/orbit-repo/orbit_home_sync:Select
+        pv-name: -volume
+        pvc-name: -volume-claim
+        fss-path: /
+        fss-ip: 172.23.2.254
+        orbit-config:
+            data:
+              db-url: jdbc:oracle:thin:@cicdadw_medium?TNS_ADMIN=/orbit_home/adw_wallet
+              db-user: 
+              db-password: Orbit#1234
+              database-platform: org.eclipse.persistence.platform.database.OraclePlatform
+              driver-class-name: oracle.jdbc.OracleDriver
+              connection-test-query: select 1 from dual
+              maximum-pool-size: "10"
+              pool-name: MetaDataConnectionPool
+              show-sql: "true"
+              wait-for-jobs-to-complete-on-shutdown: "true"
+              quartz-jobStore-isClustered: "false"
+              quartz-scheduler-instanceName: OrbitSchedulerNode
+              servlet-context-path: /reporting
+              servlet-session-timeout: 180m
+              jot-expire-time: "180"
+              logging.console.enabled: "false"
+              spring-mail-host: smtp.gmail.com
+              spring-mail-port: "465"
+              spring-mail-username: abc@walkingtree.tech
+              spring-mail-password: xyz
+              spring-mail-properties-mail-smtp-ssl-trust: smtp.gmail.com
+              spring-mail-protocol: smtp
+              spring-mail-test-connection: "false"
+              spring-mail-properties-mail-smtp-auth: "true"
+              spring-mail-properties-mail-smtp.connectiontimeout: "5000"
+              spring-mail-properties-mail-smtp-timeout: "5000"
+              spring-mail-properties-mail-smtp-writetimeout: "5000"
+              spring-mail-properties-mail-smtp-starttls-enable: "true"
+              spring-mail-properties-mail-smtp-starttls-required: "true"
+              orbit-support-email: email_service@orbitanalytics.com
+              orbit-userlocales: en
+              orbit-cuba-reporting-office-path: /usr/lib/libreoffice/program
+              orbit-cuba-reporting-office-ports: "6955,6956"
+              orbit-python-binary-path: /usr/bin/python3
+              orbit-r-binary-path: /usr/bin/R
+              orbit-cuba-reporting-office-doc-formatter-timeout: "500"
+              orbit-license-domain-name: orbitbi.com
+              mono-quartz-auto-startup: "true"
+              web-quartz-auto-startup: "false"
+              sch-quartz-auto-startup: "true"
+              pub-quartz-auto-startup: "true"
+              mono-orbit-reporting-base-url: http://-orbit-svc/reporting
+              mono-orbit-web-node-url: http://-orbit-svc/reporting
+              orbit-reporting-base-url: http://-web-svc/reporting
+              orbit-web-node-url: http://-web-svc/reporting
+              mono-orbit-scheduler-node-url: ""   
+              mono-orbit-publisher-node-url: ""
+              web-orbit-scheduler-node-url: http://-scheduler-svc/reporting   
+              web-orbit-publisher-node-url: http://-publisher-svc/reporting
+              sch-orbit-scheduler-node-url: ""   
+              sch-orbit-publisher-node-url: ""
+              pub-orbit-scheduler-node-url: "" 
+              pub-orbit-publisher-node-url: ""
+              orbit-cors-allowed-origins: "*"
+

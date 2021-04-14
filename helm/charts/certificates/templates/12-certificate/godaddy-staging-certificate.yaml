@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: wildcard-orbit-certificate
+spec:
+  secretName: wildcard-orbit-tls
+  renewBefore: 240h
+  dnsNames:
+  - '*.orbitbi.com'
+  issuerRef:
+    name: letsencrypt-godaddy-staging
+    kind: ClusterIssuer
